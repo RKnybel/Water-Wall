@@ -2,18 +2,18 @@ import pygame
 import gameparts
 import random
 
-
-#pygame.mixer.quit() #reduces insane 100% cpu usage all the time https://bitbucket.org/pygame/pygame/issues/331/high-cpu-usage-in-pygame
-pygame.mixer.init(frequency=44100, buffer=512)
-
 #initializing the mixer before pygame gets rid of audio lag https://stackoverflow.com/questions/18273722/pygame-sound-delay
-successes, failures = pygame.init()
-print("{0} successes and {1} failures".format(successes, failures))
+pygame.mixer.init(frequency=44100, buffer=512)
+pygame.init()
 
 #display size variables
 screenWidth = 420
 screenHeight = 500
 fieldMargin = 20
+
+#settings variables
+musicEnabled = True
+sfxEnabled = True
 
 #data variables
 shapeNames = [b'I', b'J', b'L', b'O', b'S', b'T', b'Z']#shapeNames = [b'O']
@@ -21,7 +21,7 @@ bgImg = pygame.image.load('data/images/bg.png')
 dropSound = pygame.mixer.Sound('data/audio/drop.ogg')
 
 pygame.mixer.music.load('data/audio/music.ogg')
-#pygame.mixer.music.play(loops=-1) #loop the music forever
+pygame.mixer.music.play(loops=-1) #loop the music forever
 
 #timing variables
 paused = False
@@ -45,6 +45,7 @@ newPiece = gameparts.Piece(gameField, random.choice(shapeNames), 3, 0)
 nextPiece = random.randint(0, len(shapeNames) - 1)
 gameField.setNextPiece(newPiece.shapes[b'N'])
 
+
 def init(scoreBoard, gameField):
 	global nextPiece
 
@@ -53,13 +54,13 @@ def init(scoreBoard, gameField):
 	speedTime = speedUnit//currentSpeed
 	pygame.time.set_timer(pygame.USEREVENT, speedTime) #reset the timer
 
-	#reset everything
+	#reset the game pieces
 	screen.blit(bgImg, (0,0))
 	gameField.reset()
 	newPiece.reset(shapeNames[nextPiece], gameField, 3, 0)
 	scoreBoard.reset()
 
-	#next piece selector block
+	#next piece display block
 	nextPiece = random.randint(0, len(shapeNames) - 1)
 	gameField.setNextPiece(newPiece.shapes[shapeNames[nextPiece]])
 	
@@ -68,6 +69,34 @@ def init(scoreBoard, gameField):
 	gameField.render()
 	pygame.display.update()
 
+
+def setSounds(musicEnabled, sfxEnabled, musicOrSFX):
+	if not paused:
+		pygame.time.set_timer(pygame.USEREVENT, 0) #prevent this from affecting the dropping of a piece
+
+		if musicOrSFX: #make sure only one text will show at once
+			if musicEnabled:
+				pygame.mixer.music.set_volume(1.0)
+				scoreBoard.setBigText(gameField, "Music on")
+				pygame.display.update()
+			else:
+				pygame.mixer.music.set_volume(0.0)
+				scoreBoard.setBigText(gameField, "Music off")
+				pygame.display.update()
+		else:
+			if sfxEnabled:
+				dropSound.set_volume(1.0)
+				scoreBoard.setBigText(gameField, "SFX on")
+				pygame.display.update()
+			else:
+				dropSound.set_volume(0.0)
+				scoreBoard.setBigText(gameField, "SFX off")
+				pygame.display.update()
+
+		pygame.time.wait(1000) #display the sound status for 1 second
+		pygame.event.clear()
+		pygame.time.set_timer(pygame.USEREVENT, speedTime)
+	
 
 def processFrame(newPiece, gameField, scoreBoard, drop=True):
 	global nextPiece
@@ -97,7 +126,7 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 			scoreBoard.render()
 			gameField.render()
 			pygame.display.update()
-			result = 1
+			result = 1 #piece collided
 
 		elif returnValue == 2: #if the piece collided above the playable area...
 
@@ -115,7 +144,7 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 			scoreBoard.gameOver(gameField)
 
 			pygame.display.update()
-			result = 1
+			result = 1 #piece collided
 
 			#wait for F to be pressed or window to be closed
 			waitingForF = True
@@ -131,12 +160,14 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 						pygame.time.set_timer(pygame.USEREVENT, 0)
 						init(scoreBoard, gameField)
 
-		elif returnValue == 3:
-			print("Contact")
+		elif returnValue == 3: #if the piece came in contact with another one or the floor...
+			#play a sound
 			dropSound.play()
+
+			#allow 1.5 seconds for the player to adjust the piece
 			pygame.time.set_timer(pygame.USEREVENT, 0)
 			pygame.time.set_timer(pygame.USEREVENT, 1500)
-			result = 0
+			result = 0 #piece did not collide
 			
 
 	#render
@@ -146,17 +177,26 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 	pygame.display.update()
 	return result
 
+#this will show the title screen until the user presses space, also allowing them to view the help screen if they want to
+scoreBoard.titleScreen() 
+
+#this will initialize the game
 init(scoreBoard, gameField)
 
 #Game Event Loop==========================================
 while True:
 	clock.tick(FPS)
 	#Input================================================
+	#program will pause here until an event happens (input or timer)
 	event = pygame.event.wait()
 
-	if event.type == pygame.QUIT:
+	if event.type == pygame.QUIT: #if the user clicks the close button on the window...
+		if scoreBoard.score > scoreBoard.hiScore:
+			scoreBoard.writeHiScore()
 		quit()
-	elif event.type == pygame.KEYDOWN and not paused:
+
+
+	elif event.type == pygame.KEYDOWN and not paused: #only check these inputs if the game is not paused
 
 		if event.key == pygame.K_LEFT or event.key == pygame.K_a: #move left
 			newPiece.left(gameField)
@@ -184,21 +224,9 @@ while True:
 			resultValue = 0
 			while resultValue == 0: #drop one until a collision is detected
 				resultValue = processFrame(newPiece, gameField, scoreBoard, drop=True)
-
-		if event.key == pygame.K_c: #clear (for debugging)
-			gameField.currentField.fill(b'*')
-			processFrame(newPiece, gameField, scoreBoard, drop=False)
-
-		if event.key == pygame.K_p:
-			scoreBoard.addScore(100)
-			currentSpeed = scoreBoard.level
-			speedTime = speedUnit // currentSpeed 
-			processFrame(newPiece, gameField, scoreBoard, drop=False)
-			pygame.time.set_timer(pygame.USEREVENT, 0)
-			pygame.time.set_timer(pygame.USEREVENT, speedTime)
 				
 
-	elif event.type == pygame.KEYUP and not paused:
+	elif event.type == pygame.KEYUP and not paused: #only check these inputs if the game is not paused
 
 		if event.key == pygame.K_DOWN or event.key == pygame.K_s: #stop softdropping
 			speedTime = speedUnit // currentSpeed
@@ -207,10 +235,10 @@ while True:
 			pygame.time.set_timer(pygame.USEREVENT, speedTime)
 
 	elif event.type == pygame.USEREVENT: #time to process and render a new frame
-
 		processFrame(newPiece, gameField, scoreBoard, drop=True)
 
-	if event.type == pygame.KEYDOWN:
+
+	if event.type == pygame.KEYDOWN: #check these inputs at any time
 		if event.key == pygame.K_f:
 			if paused:
 				if scoreBoard.score > scoreBoard.hiScore:
@@ -224,7 +252,14 @@ while True:
 				pygame.time.wait(500)
 				quit()
 
-		if event.key == pygame.K_ESCAPE:
+		if event.key == pygame.K_o: #toggle music
+			musicEnabled = not musicEnabled
+			setSounds(musicEnabled, sfxEnabled, True)
+		if event.key == pygame.K_p: #toggle sfx
+			sfxEnabled = not sfxEnabled
+			setSounds(musicEnabled, sfxEnabled, False)
+
+		if event.key == pygame.K_ESCAPE: #pause and unpause
 			paused = not paused
 			if paused:
 				pygame.time.set_timer(pygame.USEREVENT, 0)
@@ -235,12 +270,12 @@ while True:
 				scoreBoard.setBigText(gameField, "PAUSED", subText="Press F to quit.", shaded=True)
 				pygame.display.update()
 			else:
-				for i in range(3, 0, -1):
+				for i in range(3, 0, -1): #3 2 1 countdown
 					#render
 					screen.blit(bgImg, (0,0))
 					gameField.render()
 					scoreBoard.render()
-					scoreBoard.setBigText(gameField, str(i) + "...", shaded=True)
+					scoreBoard.setBigText(gameField, str(i) + "...", shaded=False)
 					pygame.display.update()
 					pygame.time.wait(1000)
 				pygame.event.clear() #to prevent any keypresses during pause from being processed in the next frame

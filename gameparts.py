@@ -3,6 +3,8 @@ import pygame
 import os #for clear command
 
 bgImg = pygame.image.load('data/images/bg.png')
+titleImg = pygame.image.load('data/images/title.png')
+helpImg = pygame.image.load('data/images/help.png')
 
 class Piece:
 
@@ -407,6 +409,30 @@ class ScoreBoard:
 		self.screenObj.blit(self.gameOverTextSurface, (28, 220))
 		self.screenObj.blit(self.gameOverTextSurface2, (35, 270))
 		self.screenObj.blit(self.gameOverTextSurface3, (60, 300))
+
+	def titleScreen(self):
+		self.screenObj.blit(titleImg, (0,0))
+		pygame.display.update()
+
+		while True:
+			event = pygame.event.wait()
+			if event.type == pygame.QUIT:
+				quit()
+			elif event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_SPACE:
+					return
+				if event.key == pygame.K_SLASH or event.key == pygame.K_QUESTION:
+					self.screenObj.blit(helpImg, (0,0))
+					pygame.display.update()
+					while True:
+						event = pygame.event.wait()
+						if event.type == pygame.QUIT:
+							quit()
+						elif event.type == pygame.KEYDOWN:
+							if event.key == pygame.K_SPACE:
+								self.screenObj.blit(titleImg, (0,0))
+								pygame.display.update()
+								break
 
 	def reset(self):
 		self.score = 0
