@@ -2,7 +2,7 @@
 A Tetris clone written in Python with Pygame.
 Currently a work in progress so make an issue for any bugs you run in to :)
 
-Run waterwall.py to play!
+Make sure pygame is installed and run waterwall.py to play!
 
 Help menu is currently in progress so: 
 w/a/s/d or arrow keys to move the piece 
