@@ -18,6 +18,10 @@ p to toggle sound effects (in-game only for now, does not work on title screen o
 
 ### A: Move Left
 ### D: Move Right
-### S: Hold the Drop
+### S: Soft Drop
 ### M: Rotate Right
 ### N: Rotate Left
+
+# Game Options
+### O: Toggle Music On/Off
+### ESC: Pause Game
