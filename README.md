@@ -16,12 +16,14 @@ p to toggle sound effects (in-game only for now, does not work on title screen o
 
 # Controls moving bricks
 
-### A: Move Left
-### D: Move Right
-### S: Soft Drop
-### M: Rotate Right
-### N: Rotate Left
+### A/left: Move Left
+### D/right: Move Right
+### S/down: Soft Drop
+### M/X: Rotate Right
+### N/Z: Rotate Left
 
 # Game Options
 ### O: Toggle Music On/Off
+### P: Toggle Sound Effects On/Off
 ### ESC: Pause Game
+### F: Restart or Quit Game
