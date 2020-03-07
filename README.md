@@ -13,3 +13,11 @@ p to toggle sound effects (in-game only for now, does not work on title screen o
 # Requirements
 ### PyGame
 ### NumPy
+
+# Controls moving bricks
+
+### A: Move Left
+### D: Move Right
+### S: Hold the Drop
+### M: Rotate Right
+### N: Rotate Left
