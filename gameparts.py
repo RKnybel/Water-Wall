@@ -412,6 +412,11 @@ class ScoreBoard:
 
 	def titleScreen(self):
 		self.screenObj.blit(titleImg, (0,0))
+
+
+		titleScoreTextSurface = self.goFont2.render(str(self.hiScore), False, (255,255,255))
+		self.screenObj.blit(titleScoreTextSurface, (178,136))
+
 		pygame.display.update()
 
 		while True:
