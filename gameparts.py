@@ -274,7 +274,7 @@ class GameField:
 		pygame.display.update()
 
 		if numLines > 0:
-			pygame.time.delay(500)
+			pygame.time.delay(1000)
 
 		pygame.time.set_timer(pygame.USEREVENT, speedTime)
 			
@@ -320,7 +320,7 @@ class GameField:
 
 class ScoreBoard:
 	
-	def __init__(self, screenObj):
+	def __init__(self, screenObj, configObj):
 		pygame.font.init()
 		self.dFont = pygame.font.Font('data/fonts/LemonMilk.otf', 16)
 		self.goFont = pygame.font.Font('data/fonts/LemonMilk.otf', 36)
@@ -332,19 +332,13 @@ class ScoreBoard:
 
 
 		self.screenObj = screenObj
+		self.cfgObj = configObj
 		self.nextPiece = b'?'
 
 		self.score = 0
 		self.level = 1
 		self.lines = 0
-		self.hiScore = 0
-
-		try:
-			self.hiScore = int(open("data/hiScore", "r").read())
-		except:
-			hiScoreFile = open("data/hiScore", "w")
-			hiScoreFile.write("0")
-			hiScoreFile.close()
+		self.hiScore = self.cfgObj.getHiscore()
 
 	def render(self):
 		scoreTextSurface = self.dFont.render('Score: ' + str(self.score), False, (255,255,255))
@@ -363,26 +357,24 @@ class ScoreBoard:
 		self.screenObj.blit(nextPieceTextSurface, (287, 60))
 
 	def writeHiScore(self):	
-		hiScoreFile = open("data/hiScore", "w")
-		hiScoreFile.write(str(self.score))
-		hiScoreFile.close()
+		self.cfgObj.writeHiscore(self.score)
 
 	def setBigText(self, gameField, text, subText="", shaded=False):
 
 		if shaded:
 			gameFieldShade = pygame.Surface((gameField.width * gameField.cellSize, (gameField.height - 4) * gameField.cellSize))
 			gameFieldShade.set_alpha(200)
-			gameFieldShade.fill((255,255,255))
+			gameFieldShade.fill((0,0,0))
 			self.screenObj.blit(gameFieldShade, (0 + gameField.marginPx, 0 + gameField.marginPx))
 
-		self.bigTextSurface = self.goFont.render(text, False, (30,128,0))
-		self.subTextSurface = self.goFont2.render(subText, False, (30,128,0))
+		self.bigTextSurface = self.goFont.render(text, False, (30,230,0))
+		self.subTextSurface = self.goFont2.render(subText, False, (30,230,0))
 
 		self.screenObj.blit(self.bigTextSurface, (28, 220))
 		self.screenObj.blit(self.subTextSurface, (35, 270))
 		
 
-	def addLines(self, numLines, gameField, isShaded = False):
+	def addLines(self, numLines, gameField, isShaded = True):
 		self.lines += numLines
 
 		if numLines > 0:
@@ -395,7 +387,7 @@ class ScoreBoard:
 
 	def addScore(self, amount):
 		self.score += amount
-		self.level = (self.score // 100) + 1
+		self.level = (self.score // 1000) + 1
 
 	def gameOver(self, gameField):
 
@@ -414,7 +406,7 @@ class ScoreBoard:
 		self.screenObj.blit(titleImg, (0,0))
 
 
-		titleScoreTextSurface = self.goFont2.render(str(self.hiScore), False, (255,255,255))
+		titleScoreTextSurface = self.goFont2.render(str(self.cfgObj.getHiscore()), False, (255,255,255))
 		self.screenObj.blit(titleScoreTextSurface, (178,136))
 
 		pygame.display.update()
@@ -443,4 +435,98 @@ class ScoreBoard:
 		self.score = 0
 		self.level = 1
 		self.lines = 0
-		self.hiScore = int(open("data/hiScore", "r").read())
+		self.hiScore = self.cfgObj.getHiscore()
+
+class ConfigFile:
+
+	def __init__(self):
+		try:
+			self.cfgFile = open("data/config.txt", "r")
+			self.cfgFileLines = self.cfgFile.readlines()
+			self.cfgFile.close()
+		except:
+			self.cfgFile = open("data/config.txt", "w+")
+			self.cfgFile.write("0\nMUSIC=ON\nSFX=ON")
+			self.cfgFileLines = self.cfgFile.readlines()
+			self.cfgFile.close()
+
+	def applySettings(self, hiScore, musicEnabled, sfxEnabled):
+		self.cfgFile = open("data/config.txt", "r")
+		self.cfgFileLines = self.cfgFile.readlines()
+
+		hiScore = int(self.cfgFileLines[0])
+
+		if "MUSIC=OFF" in self.cfgFileLines[1]:
+			musicEnabled = False
+		else:
+			musicEnabled = True
+
+		if "SFX=OFF" in self.cfgFileLines[2]:
+			sfxEnabled = False
+		else:
+			sfxEnabled = True
+
+		self.cfgFile.close()
+
+	def writeHiscore(self, hiScore):
+		self.cfgFile = open("data/config.txt")
+		self.cfgFileLines = self.cfgFile.read().splitlines()
+
+		self.cfgFileLines[0] = str(hiScore)
+
+		open('data/config.txt','w').write('\n'.join(self.cfgFileLines))
+		self.cfgFile.close()
+
+	def getHiscore(self):
+		self.cfgFile = open("data/config.txt", "r")
+		self.cfgFileLines = self.cfgFile.readlines()
+		self.cfgFile.close()
+		return int(self.cfgFileLines[0].rstrip())
+
+	def writeMusic(self, musicEnabled):
+		self.cfgFile = open("data/config.txt")
+		self.cfgFileLines = self.cfgFile.read().splitlines()
+
+		if musicEnabled:
+			self.cfgFileLines[1] = "MUSIC=ON"
+		else:
+			self.cfgFileLines[1] = "MUSIC=OFF"
+
+		open('data/config.txt','w').write('\n'.join(self.cfgFileLines))
+		self.cfgFile.close()
+
+	def writeSfx(self, sfxEnabled):
+		self.cfgFile = open("data/config.txt")
+		self.cfgFileLines = self.cfgFile.read().splitlines()
+
+		if sfxEnabled:
+			self.cfgFileLines[2] = "SFX=ON"
+		else:
+			self.cfgFileLines[2] = "SFX=OFF"
+
+		open('data/config.txt','w').write('\n'.join(self.cfgFileLines))
+		self.cfgFile.close()
+
+	def getMusicConfig(self):
+		self.cfgFile = open("data/config.txt", "r")
+		self.cfgFileLines = self.cfgFile.readlines()
+		self.cfgFile.close()
+
+		musicEnabled = True
+
+		if "MUSIC=OFF" in self.cfgFileLines[1]:
+			musicEnabled = False
+
+		return musicEnabled
+
+	def getSfxConfig(self):
+		self.cfgFile = open("data/config.txt", "r")
+		self.cfgFileLines = self.cfgFile.readlines()
+		self.cfgFile.close()
+
+		sfxEnabled = True
+
+		if "SFX=OFF" in self.cfgFileLines[2]:
+			sfxEnabled = False
+
+		return sfxEnabled

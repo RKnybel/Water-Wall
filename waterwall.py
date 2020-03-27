@@ -21,10 +21,13 @@ bgImg = pygame.image.load('data/images/bg.png')
 dropSound = pygame.mixer.Sound('data/audio/drop.ogg')
 
 pygame.mixer.music.load('data/audio/music.ogg')
-pygame.mixer.music.play(loops=-1) #loop the music forever
 
 #timing variables
 paused = False
+softdropping = False
+softpoints = 0
+harddropping = False
+hardpoints = 0
 clock = pygame.time.Clock()
 FPS = 60  # Frames per second.
 speedUnit = 500 #ms
@@ -37,13 +40,30 @@ screen = pygame.display.set_mode((screenWidth, screenHeight),pygame.HWSURFACE)
 pygame.display.set_caption('Water Wall')
 
 #game part initialization
-scoreBoard = gameparts.ScoreBoard(screen)
+cfgFile = gameparts.ConfigFile()
+scoreBoard = gameparts.ScoreBoard(screen, cfgFile)
 gameField = gameparts.GameField(10, 24, screenWidth, screenHeight, fieldMargin, screen, scoreBoard)
 newPiece = gameparts.Piece(gameField, random.choice(shapeNames), 3, 0)
 
 #next piece selector block, start off with a null piece (no blocks in it)
 nextPiece = random.randint(0, len(shapeNames) - 1)
 gameField.setNextPiece(newPiece.shapes[b'N'])
+
+#load audio settings
+if cfgFile.getMusicConfig():
+	pygame.mixer.music.set_volume(1.0)
+else:
+	musicEnabled = False
+	pygame.mixer.music.set_volume(0.0)
+
+if cfgFile.getSfxConfig():
+	dropSound.set_volume(1.0)
+else:
+	sfxEnabled = False
+	dropSound.set_volume(0.0)
+
+#start the music
+pygame.mixer.music.play(loops=-1) #loop the music forever
 
 
 def init(scoreBoard, gameField):
@@ -59,6 +79,7 @@ def init(scoreBoard, gameField):
 	gameField.reset()
 	newPiece.reset(shapeNames[nextPiece], gameField, 3, 0)
 	scoreBoard.reset()
+	cfgFile.applySettings(scoreBoard.hiScore, musicEnabled, sfxEnabled)
 
 	#next piece display block
 	nextPiece = random.randint(0, len(shapeNames) - 1)
@@ -73,52 +94,107 @@ def init(scoreBoard, gameField):
 def setSounds(musicEnabled, sfxEnabled, musicOrSFX):
 	if not paused:
 		pygame.time.set_timer(pygame.USEREVENT, 0) #prevent this from affecting the dropping of a piece
+	else:
+		#remove the paused text
+		screen.blit(bgImg, (0,0))
+		gameField.render()
+		scoreBoard.render()
+		scoreBoard.setBigText(gameField, "", shaded=True)
+		pygame.display.update()
 
-		if musicOrSFX: #make sure only one text will show at once
-			if musicEnabled:
-				pygame.mixer.music.set_volume(1.0)
-				scoreBoard.setBigText(gameField, "Music on")
-				pygame.display.update()
-			else:
-				pygame.mixer.music.set_volume(0.0)
-				scoreBoard.setBigText(gameField, "Music off")
-				pygame.display.update()
+	if musicOrSFX: #make sure only one text will show at once
+		if musicEnabled:
+			pygame.mixer.music.set_volume(1.0)
+			scoreBoard.setBigText(gameField, "Music on")
+			pygame.display.update()
 		else:
-			if sfxEnabled:
-				dropSound.set_volume(1.0)
-				scoreBoard.setBigText(gameField, "SFX on")
-				pygame.display.update()
-			else:
-				dropSound.set_volume(0.0)
-				scoreBoard.setBigText(gameField, "SFX off")
-				pygame.display.update()
+			pygame.mixer.music.set_volume(0.0)
+			scoreBoard.setBigText(gameField, "Music off")
+			pygame.display.update()
+	else:
+		if sfxEnabled:
+			dropSound.set_volume(1.0)
+			scoreBoard.setBigText(gameField, "SFX on")
+			pygame.display.update()
+		else:
+			dropSound.set_volume(0.0)
+			scoreBoard.setBigText(gameField, "SFX off")
+			pygame.display.update()
 
-		pygame.time.wait(1000) #display the sound status for 1 second
-		pygame.event.clear()
+	pygame.time.wait(1000) #display the sound status for 1 second
+	pygame.event.clear() #remove any input from during that 1 second
+
+	if not paused:
 		pygame.time.set_timer(pygame.USEREVENT, speedTime)
+	if paused:
+		#replace the paused text
+		screen.blit(bgImg, (0,0))
+		gameField.render()
+		scoreBoard.render()
+		scoreBoard.setBigText(gameField, "PAUSED", subText="Press F to quit.", shaded=True)
+		pygame.display.update()
 	
 
 def processFrame(newPiece, gameField, scoreBoard, drop=True):
 	global nextPiece
 	global paused
+	global softpoints
+	global hardpoints
+	global softdropping
+	global harddropping
+	global speedTime
+	global speedUnit
+	global currentSpeed
 	result = 0
 
 	#drop handler
 	if drop:
 		returnValue = newPiece.dropOne(gameField) #drop the piece by one cell
+
+		if softdropping:
+			softpoints += 2
+		elif harddropping:
+			hardpoints += 5
+
 		if returnValue == 1: #if the piece collided within the playable area..
-			
+
+
+
+			scoreBoard.addScore(softpoints + hardpoints)
+
 			#save the field and check it for completed lines
 			gameField.applyField()
 			gameField.checkLines(speedTime, screen, scoreBoard)
 
+			if softpoints > hardpoints:
+				scoreBoard.setBigText(gameField, "SOFT DROP!", subText="+" + str(softpoints + hardpoints) + "POINTS!", shaded=True)
+				softdropping = False
+				harddropping = False
+				speedTime = speedUnit // currentSpeed #put the speed back to normal
+				pygame.time.set_timer(pygame.USEREVENT, speedTime)
+				pygame.display.update()
+				pygame.time.wait(1000)
+			if hardpoints > softpoints:
+				scoreBoard.setBigText(gameField, "HARD DROP!", subText="+" + str(softpoints + hardpoints) + "POINTS!", shaded=True)
+				softdropping = False
+				harddropping = False
+				speedTime = speedUnit // currentSpeed #put the speed back to normal
+				pygame.time.set_timer(pygame.USEREVENT, speedTime)
+				pygame.display.update()
+				pygame.time.wait(1000)
+
+
+
+
 			#move piece back above board and add to score
 			newPiece.reset(shapeNames[nextPiece], gameField, 3, 0)
-			scoreBoard.addScore(2) #user gains 2 points every time a piece is placed
 
 			#next piece selector block
 			nextPiece = random.randint(0, len(shapeNames) - 1)
 			gameField.setNextPiece(newPiece.shapes[shapeNames[nextPiece]])
+
+			#reset soft and hard drop bonuses
+			softpoints, hardpoints = (0,0)
 
 			#render
 			gameField.reShow()
@@ -151,14 +227,13 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 			while waitingForF:
 				event = pygame.event.wait()
 				if event.type == pygame.QUIT:
-					if scoreBoard.score > scoreBoard.hiScore:
-						scoreBoard.writeHiScore()
 					quit()
 				elif event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_f:
 						waitingForF = False
 						pygame.time.set_timer(pygame.USEREVENT, 0)
 						init(scoreBoard, gameField)
+			softpoints, hardpoints = (0,0)
 
 		elif returnValue == 3: #if the piece came in contact with another one or the floor...
 			#play a sound
@@ -207,6 +282,7 @@ while True:
 			processFrame(newPiece, gameField, scoreBoard, drop=False)
 
 		if event.key == pygame.K_DOWN or event.key == pygame.K_s: #hold for soft drop
+			softdropping = True
 			speedTime = speedUnit//dropSpeed
 			processFrame(newPiece, gameField, scoreBoard, drop=True)
 			pygame.time.set_timer(pygame.USEREVENT, 0)
@@ -222,13 +298,16 @@ while True:
 
 		if event.key == pygame.K_SPACE: #hard drop
 			resultValue = 0
+			harddropping = True
 			while resultValue == 0: #drop one until a collision is detected
 				resultValue = processFrame(newPiece, gameField, scoreBoard, drop=True)
+			harddropping = False
 				
 
 	elif event.type == pygame.KEYUP and not paused: #only check these inputs if the game is not paused
 
 		if event.key == pygame.K_DOWN or event.key == pygame.K_s: #stop softdropping
+			softdropping = False
 			speedTime = speedUnit // currentSpeed
 			processFrame(newPiece, gameField, scoreBoard, drop=False)
 			pygame.time.set_timer(pygame.USEREVENT, 0)
@@ -254,9 +333,11 @@ while True:
 
 		if event.key == pygame.K_o: #toggle music
 			musicEnabled = not musicEnabled
+			cfgFile.writeMusic(musicEnabled)
 			setSounds(musicEnabled, sfxEnabled, True)
 		if event.key == pygame.K_p: #toggle sfx
 			sfxEnabled = not sfxEnabled
+			cfgFile.writeSfx(sfxEnabled)
 			setSounds(musicEnabled, sfxEnabled, False)
 
 		if event.key == pygame.K_ESCAPE: #pause and unpause

@@ -1,0 +1,3 @@
+140
+MUSIC=ON
+SFX=ON
