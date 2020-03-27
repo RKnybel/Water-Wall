@@ -174,6 +174,7 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 				pygame.time.set_timer(pygame.USEREVENT, speedTime)
 				pygame.display.update()
 				pygame.time.wait(1000)
+				pygame.event.clear() #remove any input from during that 1 second
 			if hardpoints > softpoints:
 				scoreBoard.setBigText(gameField, "HARD DROP!", subText="+" + str(softpoints + hardpoints) + "POINTS!", shaded=True)
 				softdropping = False
@@ -182,6 +183,7 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 				pygame.time.set_timer(pygame.USEREVENT, speedTime)
 				pygame.display.update()
 				pygame.time.wait(1000)
+				pygame.event.clear() #remove any input from during that 1 second
 
 
 
