@@ -1,6 +1,5 @@
 import numpy as np
 import pygame
-import os #for clear command
 
 bgImg = pygame.image.load('data/images/bg.png')
 titleImg = pygame.image.load('data/images/title.png')
@@ -239,14 +238,26 @@ class GameField:
 			pieceLocs = ~np.isin(self.currentField[row], [b'*'])
 			#print(np.all(pieceLocs))
 			if np.all(pieceLocs):
+
+				''' Old, non-animated line indicator
 				self.currentField[row].fill(b'W')
 				self.reShow()	
 				screen.blit(bgImg, (0,0))
 				scoreBoard.render()
 				self.render()
 				pygame.display.update()
-
 				pygame.time.delay(200)
+				'''
+
+				#New animated line indicator
+				stopPoint = int((self.cellSize * self.width) / 2)
+				for i in range(0, stopPoint):
+					screen.blit(self.images[b'W'], (self.marginPx + (self.cellSize * (self.width / 2)) + i, self.marginPx + self.cellSize * (row - 4)))
+					screen.blit(self.images[b'W'], (self.marginPx + (self.cellSize * (self.width / 2)) - i, self.marginPx + self.cellSize * (row - 4)))
+					pygame.display.update() 
+					pygame.time.wait(int(1 / stopPoint) ^ int(i / 30) )
+
+				pygame.time.wait(100)
 
 				self.currentField[row].fill(b'*')
 				self.reShow()
@@ -256,16 +267,52 @@ class GameField:
 				self.render()
 				pygame.display.update()
 
-				pygame.time.delay(100)
+				for i in range(stopPoint, 0, -1):
+					screen.blit(bgImg, (0,0))
+					scoreBoard.render()
+					self.render()
 
-				np.copyto(self.currentField[3:row+1,0:10], self.currentField[2:row, 0:10])
+					if i == stopPoint - self.cellSize:
+						print(2)
+						np.copyto(self.currentField[3:row+1,0], self.currentField[2:row, 0])
+						np.copyto(self.currentField[3:row+1,9], self.currentField[2:row, 9])
+					if i == stopPoint - self.cellSize * 2:
+						print(4)
+						np.copyto(self.currentField[3:row+1,1], self.currentField[2:row, 1])
+						np.copyto(self.currentField[3:row+1,8], self.currentField[2:row, 8])
+					if i == stopPoint - self.cellSize * 3:
+						print(6)
+						np.copyto(self.currentField[3:row+1,2], self.currentField[2:row, 2])
+						np.copyto(self.currentField[3:row+1,7], self.currentField[2:row, 7])
+					if i == stopPoint - self.cellSize * 4:
+						print(8)
+						np.copyto(self.currentField[3:row+1,3], self.currentField[2:row, 3])
+						np.copyto(self.currentField[3:row+1,6], self.currentField[2:row, 6])
+					if i <= stopPoint - stopPoint + 1:
+						print(10)
+						np.copyto(self.currentField[3:row+1,4], self.currentField[2:row, 4])
+						np.copyto(self.currentField[3:row+1,5], self.currentField[2:row, 5])
+
+
+					self.reShow()
+
+					for pos in range(0, i):
+						screen.blit(self.images[b'W'], (self.marginPx + (self.cellSize * (self.width / 2)) + pos, self.marginPx + self.cellSize * (row - 4)))
+						screen.blit(self.images[b'W'], (self.marginPx + (self.cellSize * (self.width / 2)) - pos, self.marginPx + self.cellSize * (row - 4)))
+
+					pygame.display.update() 
+					pygame.time.wait(int(1 / stopPoint) ^ int((i*-1) / 30) )
+
+				pygame.event.clear()
+
+				#np.copyto(self.currentField[3:row+1,0:10], self.currentField[2:row, 0:10])
 
 				self.reShow()
 				screen.blit(bgImg, (0,0))
 				scoreBoard.render()
 				self.render()
 				pygame.display.update()
-
+				pygame.time.wait(150)
 		
 		screen.blit(bgImg, (0,0))
 		self.render()
