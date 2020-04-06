@@ -386,6 +386,10 @@ class ScoreBoard:
 		self.level = 1
 		self.lines = 0
 		self.hiScore = self.cfgObj.getHiscore()
+		self.bigTextActive = False
+
+	def disableBigText(self):
+		self.bigTextActive = False
 
 	def render(self):
 		scoreTextSurface = self.dFont.render('Score: ' + str(self.score), False, (255,255,255))
@@ -407,18 +411,46 @@ class ScoreBoard:
 		self.cfgObj.writeHiscore(self.score)
 
 	def setBigText(self, gameField, text, subText="", shaded=False):
+		
+		gameFieldShade = pygame.Surface((gameField.width * gameField.cellSize, (gameField.height - 4) * gameField.cellSize))
+			
 
-		if shaded:
-			gameFieldShade = pygame.Surface((gameField.width * gameField.cellSize, (gameField.height - 4) * gameField.cellSize))
-			gameFieldShade.set_alpha(200)
-			gameFieldShade.fill((0,0,0))
-			self.screenObj.blit(gameFieldShade, (0 + gameField.marginPx, 0 + gameField.marginPx))
+		if self.bigTextActive == False:
+			for i in range(420, 27, -10):
+				self.bigTextSurface = self.goFont.render(text, False, (30,230,0))
+				self.subTextSurface = self.goFont2.render(subText, False, (30,230,0))
 
-		self.bigTextSurface = self.goFont.render(text, False, (30,230,0))
-		self.subTextSurface = self.goFont2.render(subText, False, (30,230,0))
+				self.screenObj.blit(bgImg, (0,0))
+				gameField.render()
+				self.render()
 
-		self.screenObj.blit(self.bigTextSurface, (28, 220))
-		self.screenObj.blit(self.subTextSurface, (35, 270))
+				if shaded:
+					gameFieldShade.set_alpha(197 - ((i-27) // 2))
+					gameFieldShade.fill((0,0,0))
+					self.screenObj.blit(gameFieldShade, (0 + gameField.marginPx, 0 + gameField.marginPx))
+
+				self.screenObj.blit(self.bigTextSurface, (i, 220))
+				self.screenObj.blit(self.subTextSurface, (i + 7, 270))
+
+				pygame.display.update()
+		else:
+			self.bigTextSurface = self.goFont.render(text, False, (30,230,0))
+			self.subTextSurface = self.goFont2.render(subText, False, (30,230,0))
+
+			self.screenObj.blit(bgImg, (0,0))
+			gameField.render()
+			self.render()
+
+			if shaded:
+				gameFieldShade.set_alpha(197)
+				gameFieldShade.fill((0,0,0))
+				self.screenObj.blit(gameFieldShade, (0 + gameField.marginPx, 0 + gameField.marginPx))
+
+			self.screenObj.blit(self.bigTextSurface, (28, 220))
+			self.screenObj.blit(self.subTextSurface, (35, 270))
+
+			pygame.display.update()
+		self.bigTextActive = True
 		
 
 	def addLines(self, numLines, gameField, isShaded = True):

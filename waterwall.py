@@ -122,6 +122,7 @@ def setSounds(musicEnabled, sfxEnabled, musicOrSFX):
 			pygame.display.update()
 
 	pygame.time.wait(1000) #display the sound status for 1 second
+	scoreBoard.disableBigText()
 	pygame.event.clear() #remove any input from during that 1 second
 
 	if not paused:
@@ -186,6 +187,7 @@ def processFrame(newPiece, gameField, scoreBoard, drop=True):
 				pygame.event.clear() #remove any input from during that 1 second
 
 
+			scoreBoard.disableBigText()
 
 
 			#move piece back above board and add to score
@@ -361,6 +363,7 @@ while True:
 					scoreBoard.setBigText(gameField, str(i) + "...", shaded=False)
 					pygame.display.update()
 					pygame.time.wait(1000)
+				scoreBoard.disableBigText()
 				pygame.event.clear() #to prevent any keypresses during pause from being processed in the next frame
 				processFrame(newPiece, gameField, scoreBoard, drop=False)
 				pygame.time.set_timer(pygame.USEREVENT, speedTime)
